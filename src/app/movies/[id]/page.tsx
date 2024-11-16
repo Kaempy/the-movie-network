@@ -59,9 +59,12 @@ const MovieDetailsPage = async ({
           backgroundImage: `url('https://image.tmdb.org/t/p/original${movie?.backdrop_path}')`,
         }}
       >
-        <button className="border border-slate-400 z-10 absolute left-16 top-16 rounded-full px-4 py-2 font-bold h-14">
-          <Link href="/">Back to Movies</Link>
-        </button>
+        <Link
+          className="border border-slate-400 flex items-center justify-center z-10 absolute left-16 top-16 rounded-full px-4 py-2 font-bold h-14"
+          href="/"
+        >
+          Back to Movies
+        </Link>
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-8">
           <div className="absolute left-16 bottom-16 text-start space-y-4">
             <h1 className="text-5xl font-bold mb-4">{movie?.title}</h1>
