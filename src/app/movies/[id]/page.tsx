@@ -1,12 +1,49 @@
+import { fetchMovie, fetchMovieList } from '@src/app/actions';
 import Play from '@src/icons/play';
 import { formatDate } from '@src/lib/utils';
-import { SingleMovie } from '@src/types';
-import { Link, useLoaderData } from 'react-router-dom';
+import { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
 
-const MovieDetails = () => {
-  const movie = useLoaderData() as SingleMovie | undefined;
-  console.log(movie, 'movie');
+// All posts besides the top 10 will be a 404
+export const dynamicParams = false;
 
+export const generateMetadata = async ({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> => {
+  const { id } = await params;
+  const movie = await fetchMovie(id);
+  return {
+    title: movie?.title,
+    description: movie?.overview,
+    openGraph: {
+      images: [`https://image.tmdb.org/t/p/original${movie?.poster_path}`],
+    },
+  };
+};
+
+// Return a list of `params` to populate the [slug] dynamic segment
+export async function generateStaticParams() {
+  const movies = await fetchMovieList({ search: undefined, page: 1 });
+
+  return movies?.results.map((post) => ({
+    id: String(post.id),
+  }));
+}
+
+const MovieDetailsPage = async ({ params }: { params: { id: string } }) => {
+  const { id } = await params;
+  const movie = await fetchMovie(id);
+  const playHandler = () => {
+    const vid = movie?.videos.results[0];
+    if (vid?.site.toLowerCase() === 'youtube') {
+      const videoUrl = `https://www.youtube.com/embed/${vid.key}`;
+      return videoUrl;
+    }
+  };
+  const videoLink = playHandler();
   return (
     <div className="flex min-h-dvh h-full flex-col text-white bg-black">
       <div
@@ -16,7 +53,7 @@ const MovieDetails = () => {
         }}
       >
         <button className="border border-slate-400 z-10 absolute left-16 top-16 rounded-full px-4 py-2 font-bold h-14">
-          <Link to="/">Back to Movies</Link>
+          <Link href="/">Back to Movies</Link>
         </button>
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-8">
           <div className="absolute left-16 bottom-16 text-start space-y-4">
@@ -25,25 +62,38 @@ const MovieDetails = () => {
               {movie?.overview}
             </p>
             <div className="flex gap-4">
-              <button className="px-6 py-3 w-40 flex items-center justify-center gap-4 rounded bg-red-600 hover:bg-red-700 font-semibold">
-                <Play />
-                Play
+              <button className="px-6 py-3 w-40 rounded bg-red-600 hover:bg-red-700 font-semibold">
+                {videoLink ? (
+                  <Link
+                    href={videoLink}
+                    target="_blank"
+                    className="flex items-center text-xs justify-center gap-4"
+                  >
+                    <Play />
+                    Youtube
+                  </Link>
+                ) : (
+                  'No Trailer'
+                )}
               </button>
             </div>
           </div>
         </div>
       </div>
-      <section className="p-16 flex items-center justify-between w-full mx-auto max-w-7l text-start">
+      <section className="p-16 flex items-center justify-between w-full mx-auto text-start">
         <div>
-          <div className="w-full flex gap-2 max-w-[500p] mb-4">
-            <span className="italic text-slate-400 text-6xl font-title">“</span>
-            <h3 className="text-4xl font-bold max-w-[400p] w-full text-slate-300 ">
-              {movie?.tagline}
+          {movie?.tagline && (
+            <h3 className="text-4xl w-full flex gap-2 mb-4 font-bold max-w-[400px] text-slate-300 ">
+              <span className="italic text-slate-400 text-6xl font-title">
+                “
+              </span>
+              {movie.tagline}
+              <span className="italic font-title text-slate-400 text-6xl">
+                ”
+              </span>
             </h3>
-            <span className="italic font-title text-slate-400 text-6xl">”</span>
-          </div>
+          )}
           <ul className="mb-4 flex gap-3 items-center">
-            {/* <span className="text-slate-400">Genres:</span> */}
             {movie?.genres.map((genre, index) => (
               <li
                 key={genre.id}
@@ -81,13 +131,16 @@ const MovieDetails = () => {
                       : 'bg-gradient-to-r from-indigo-400 to-red-500'
                   }`}
                 >
-                  <img
-                    src={`https://image.tmdb.org/t/p/original${company.logo_path}`}
-                    width={100}
-                    height={100}
-                    alt={company.name}
-                    className="bg-white object-contain"
-                  />
+                  {company.logo_path && (
+                    <Image
+                      src={`https://image.tmdb.org/t/p/original${company.logo_path}`}
+                      width={100}
+                      height={100}
+                      alt={company.name}
+                      className="bg-white object-contain"
+                      priority
+                    />
+                  )}
                 </li>
               ) : null
             )}
@@ -114,22 +167,4 @@ const MovieDetails = () => {
   );
 };
 
-export default MovieDetails;
-{
-  /* <section className="p-8">
-  <h2 className="text-3xl font-bold mb-4">Similar Movies</h2>
-  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-    {similarMovies?.map((item) => (
-      <div key={item.id} className="bg-[#1d1f26] p-4 rounded-lg">
-        <img
-          src={`https://image.tmdb.org/t/p/w300${item.poster_path}`}
-          alt={item.title}
-          className="w-full h-56 object-cover rounded-lg mb-2"
-        />
-        <h3 className="text-lg font-semibold">{item.title}</h3>
-        <p className="text-sm text-gray-400">{item.release_date}</p>
-      </div>
-    ))}
-  </div>
-</section> */
-}
+export default MovieDetailsPage;

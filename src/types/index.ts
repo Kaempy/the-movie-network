@@ -9,12 +9,12 @@ type Movie = {
   adult: boolean;
   backdrop_path: string | null;
   genre_ids: number[];
-  id: number;
+  id: number | string;
   original_language: 'en';
   original_title: string;
   overview: string;
   popularity: number;
-  poster_path: string;
+  poster_path: string | null;
   release_date: string;
   title: string;
   video: boolean;
@@ -46,7 +46,22 @@ type SpokenLanguage = {
   iso_639_1: string;
   name: string;
 };
+type VideosResult = {
+  iso_639_1: string;
+  iso_3166_1: string;
+  name: string;
+  key: string;
+  site: string;
+  size: number;
+  type: string;
+  official: boolean;
+  published_at: string;
+  id: string;
+};
 type SingleMovie = Omit<Movie, 'genre_ids'> & {
+  videos: {
+    results: VideosResult[];
+  };
   belongs_to_collection: Collection | null;
   budget: number;
   genres: Genre[];
@@ -62,4 +77,7 @@ type SingleMovie = Omit<Movie, 'genre_ids'> & {
   tagline: string | null;
 };
 
-export type { Movie, Movies, SingleMovie };
+type GenreRes = {
+  genres: Genre[];
+};
+export type { GenreRes, Movie, Movies, SingleMovie };

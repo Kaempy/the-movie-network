@@ -9,13 +9,25 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #0e1217;
     --foreground: #ededed;
   }
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply text-[var(--foreground)] bg-[var(--background)] font-sans leading-relaxed font-normal;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-baskerville);
+  font-weight: 700;
+}
+
+.input {
+  @apply mt-1 block w-full px-3 py-2 bg-inherit border border-slate-500 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500;
 }

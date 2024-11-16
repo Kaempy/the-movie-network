@@ -1,78 +1,140 @@
-import Search from '@src/icons/search';
-import { Movies } from '@src/types';
-import { ChangeEvent, FormEvent, useState } from 'react';
-import { useLoaderData, useNavigate } from 'react-router-dom';
+'use client';
+
+import { fetchMovieList, searchAction } from '@src/app/actions';
+import Loading from '@src/shared/Loading';
+import { Movie, Movies } from '@src/types';
+import { useActionState, useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import AddMovieModal from './AddMovieModal';
+import MovieHeader from './MovieHeader';
 import MovieItem from './MovieItem';
 import Pagination from './Pagination';
+import SearchItem from './SearchItem';
 
 export type PaginationState = {
   page: number;
   search?: string;
 };
 
-const MovieList = () => {
-  const movies = useLoaderData() as Movies | undefined;
-  const navigate = useNavigate();
+const MovieList = ({ movies }: { movies?: Movies }) => {
   const [pagination, setPagination] = useState<PaginationState>({
     page: movies?.page ?? 1,
+    search: undefined,
   });
-  const [searchTerm, setSerchTerm] = useState<string>('');
-  const handlSearch = ({ searchKeyword }: { searchKeyword: string }) => {
-    setPagination({
-      page: 1,
-      search: searchKeyword ? searchKeyword : undefined,
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [state, formAction, isPending] = useActionState(searchAction, null);
+  const [data, setData] = useState(movies);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (state) {
+      setData(state);
+    } else if (movies) {
+      setData(movies);
+    }
+  }, [state, movies]);
+  useEffect(() => {
+    localStorage.setItem('movieList', JSON.stringify(data));
+  }, [data]);
+
+  // Refetch data when pagination or search changes
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await fetchMovieList(pagination);
+        setData(res);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchData();
+  }, []);
+  const handleSearch = (search: string) => {
+    const filteredResults = data?.results.filter((item) =>
+      item.title.toLowerCase().includes(search.toLowerCase())
+    );
+    if (filteredResults?.length) {
+      setData((prev) => ({
+        ...prev!,
+        results: filteredResults,
+      }));
+      return;
+    }
+    if (search.trim()) {
+      setPagination((prev) => ({ ...prev, search: search }));
+      if (!searchHistory.includes(search)) {
+        // Add search to history and limit to the last 10 searches
+        setSearchHistory((prev) => {
+          const updatedHistory = [
+            search,
+            ...prev.filter((item) => item !== search),
+          ];
+          return updatedHistory.slice(0, 10);
+        });
+      }
+    }
+  };
+  const handlePageChange = useCallback((type: 'prev' | 'next') => {
+    setPagination((prev) => ({
+      ...prev,
+      page: type === 'prev' ? Math.max(prev.page - 1, 1) : prev.page + 1,
+    }));
+  }, []);
+  const handleAddMovie = (newMovie: Movie) => {
+    setData((prev) => {
+      if (!prev) {
+        // If prev is undefined, return a new Movies object with the new movie
+        return {
+          page: 1,
+          total_pages: 1,
+          total_results: 1,
+          results: [newMovie],
+        };
+      }
+      // If prev exists, add the new movie to the results array and update the total results
+      return {
+        ...prev,
+        total_results: prev.total_results + 1,
+        results: [newMovie, ...prev.results], // Add the new movie at the start (or you can add it at the end)
+      };
     });
-    navigate(`?page=1&search=${searchKeyword}`);
+
+    toast.success('Success', { description: 'Movie added successfully!' });
   };
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSerchTerm(e.target.value);
-  };
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    handlSearch({ searchKeyword: searchTerm });
-  };
+  if (isPending) {
+    return <Loading />;
+  }
   return (
     <section className="p-8">
-      <div className="my-20 text-center">
-        <h1 className="text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-indigo-600 drop-shadow-lg">
-          Welcome to the Movie Network
-        </h1>
-        <p className="mt-4 text-2xl text-wrap">
-          Dive into a world of movies, explore genres, and discover your next
-          favorite film.
-        </p>
-      </div>
-
+      {isModalOpen && (
+        <AddMovieModal
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleAddMovie}
+        />
+      )}
+      <MovieHeader />
       <div className="flex gap-4 my-2">
-        <form
-          onSubmit={handleSubmit}
-          className="border-[0.5px] flex border-slate-500 rounded-full w-full p-1"
+        <SearchItem
+          action={formAction}
+          onSearch={handleSearch}
+          page={pagination.page}
+          searchQuery={pagination.search}
+          searchHistory={searchHistory}
+        />
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className=" hover:bg-slate-600 font-bold mx-auto flex flex-shrink-0 items-center justify-center bg-slate-500 px-6 py-1 rounded-full"
         >
-          <input
-            // type="search"
-            name="search"
-            onChange={handleChange}
-            placeholder="Search by movie name..."
-            className="font-title w-full outline-none p-2 rounded-full"
-          />
-          <button
-            type="submit"
-            className="font-title transition-all duration-300 ease-in-out transform hover:bg-slate-600 hover:w-28 hover:scale-105 mx-auto flex items-center justify-center bg-slate-500 p-2 rounded-full"
-          >
-            <Search />
-          </button>
-        </form>
-        <button className=" hover:bg-slate-600 font-bold mx-auto flex flex-shrink-0 items-center justify-center bg-slate-500 px-6 py-1 rounded-full">
           Add Movie
         </button>
       </div>
-      <section className="grid lg:grid-cols-4 md:grid-cols-3 grid-cols-1 gap-6 items-center justify-center">
-        <MovieItem data={movies?.results} />
-      </section>
+      <div className="grid lg:grid-cols-4 md:grid-cols-3 grid-cols-1 gap-6 items-center justify-center">
+        <MovieItem data={data?.results} />
+      </div>
       <Pagination
-        pagination={pagination}
-        setPagination={setPagination}
-        total_pages={movies?.total_pages ?? 1}
+        total_pages={data?.total_pages ?? 1}
+        page={data?.page ?? 1}
+        handleChange={handlePageChange}
       />
     </section>
   );
