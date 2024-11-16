@@ -12,14 +12,14 @@ type Props = {
 const MovieItem = ({ data }: Props) => {
   return (
     <Fragment>
-      {!data?.length ? (
+      {data === undefined || data.length === 0 ? (
         <EmptyState
-          title="Empty List!"
-          subTitle="No items to display, list is empty!"
+          title="No items found!"
+          subTitle="No data available to display"
           img={empty}
         />
       ) : (
-        data.map((movie) => (
+        data?.map((movie) => (
           <Link
             href={`/movies/${movie.id}`}
             key={movie.id}

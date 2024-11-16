@@ -47,7 +47,7 @@ const fetchMovieList = async ({
   }
 };
 
-async function searchAction(_: any, formData: FormData) {
+async function searchAction(_: unknown, formData: FormData) {
   const search = formData.get('search');
   const page = formData.get('page');
   return await fetchMovieList({ search, page });
@@ -58,11 +58,8 @@ const fetchGenres = async (): Promise<GenreRes | undefined> => {
     const res = await fetch(endpoint);
     const result = await res.json(); // Returns an array of genre objects: { id, name }
     return result;
-  } catch (error: any) {
-    console.log(
-      'Error fetching genres:',
-      error.response?.data || error.message
-    );
+  } catch (error) {
+    console.log('Error fetching genres:', error);
     return undefined;
   }
 };
