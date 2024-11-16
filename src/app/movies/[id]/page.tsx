@@ -11,7 +11,7 @@ export const dynamicParams = false;
 export const generateMetadata = async ({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> => {
   const { id } = await params;
   const movie = await fetchMovie(id);
@@ -25,15 +25,22 @@ export const generateMetadata = async ({
 };
 
 // Return a list of `params` to populate the [slug] dynamic segment
-export async function generateStaticParams() {
+export async function generateStaticParams(): Promise<{ id: string }[]> {
   const movies = await fetchMovieList({ search: undefined, page: 1 });
 
-  return movies?.results.map((post) => ({
-    id: String(post.id),
-  }));
+  // Ensure the function always returns an array
+  return (
+    movies?.results.map((post) => ({
+      id: String(post.id),
+    })) ?? [] // Return an empty array if `movies?.results` is undefined
+  );
 }
 
-const MovieDetailsPage = async ({ params }: { params: { id: string } }) => {
+const MovieDetailsPage = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
   const { id } = await params;
   const movie = await fetchMovie(id);
   const playHandler = () => {

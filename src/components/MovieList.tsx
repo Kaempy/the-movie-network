@@ -48,7 +48,7 @@ const MovieList = ({ movies }: { movies?: Movies }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [pagination]);
   const handleSearch = (search: string) => {
     const filteredResults = data?.results.filter((item) =>
       item.title.toLowerCase().includes(search.toLowerCase())
